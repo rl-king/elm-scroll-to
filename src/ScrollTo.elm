@@ -70,14 +70,14 @@ init =
     initWithSettings (Settings 100 4.5)
 
 
-{-| Same as `init` but bring your own `Settings`
+{-| Same as `init` but bring your own `Settings`.
 -}
 initWithSettings : Settings -> State
 initWithSettings =
     State << Spring.create
 
 
-{-| Sync to the browser refresh-rate and make sure
+{-| Sync to the browser refresh rate and make sure
 our animation runs as smooth as possible.
 -}
 subscriptions : State -> Sub Msg
@@ -97,7 +97,7 @@ type Msg
     | GotViewport (Result Browser.Dom.Error ( Browser.Dom.Viewport, Browser.Dom.Element ))
 
 
-{-| Update our `State` with messages sent by `subscriptions` or `Browser.Dom`
+{-| Update the `State` with messages sent by `subscriptions` or `Browser.Dom`
 viewport information requests.
 -}
 update : Msg -> State -> ( State, Cmd Msg )
@@ -147,6 +147,10 @@ scrollTo id model =
 
 
 {-| Interrupt the current animation.
+
+You can call this if the user scrolls during the animation, interrupting
+the movement of the page.
+
 -}
 cancel : State -> State
 cancel (State spring) =

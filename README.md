@@ -2,7 +2,6 @@
 
 Smoothly scroll to an element with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
 
-
 ## Add to your `Model`
 
 ```elm
@@ -56,7 +55,7 @@ update msg model =
             )
 ```
 
-## Add to view
+## In your view
 ```elm
 div []
     [ button
