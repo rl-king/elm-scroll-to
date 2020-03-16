@@ -13,7 +13,7 @@ module ScrollTo exposing
     , scrollToCustomNoElement
     )
 
-{-| Smoothly scroll to an element with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
+{-| Smoothly scroll to an element on the page with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
 
 
 # Init
@@ -52,7 +52,7 @@ import Spring exposing (Spring)
 import Task exposing (Task)
 
 
-{-| A type containing all information to get us to the element during an animation.
+{-| A type containing all information to get us to our destination during an animation.
 -}
 type State
     = State Springs
@@ -87,6 +87,11 @@ init =
 
 
 {-| Same as `init` but bring your own `Settings`.
+
+These settings are handled by [tad-lispy/springs](https://package.elm-lang.org/packages/tad-lispy/springs/1.0.5/)
+so take a look over there on how they interact and play around with
+the `Oscillometer` demo to get a visual preview of specific settings.
+
 -}
 initWithSettings : Settings -> State
 initWithSettings settings =
@@ -168,9 +173,8 @@ update msg ((State springs) as state) =
 
 {-| Scroll to element with given `String` id on the current page.
 
-_note: this will also scroll the viewport x-axis to the element x position.
-You'll only notice this if your content overflows the browser width. Use
-`scrollToCustom` if you want more control over this behavior._
+_note: this will only scroll the viewport y-axis to the element y position.
+Use `scrollToCustom` if you want more control over this behavior._
 
 -}
 scrollTo : String -> Cmd Msg
@@ -178,13 +182,17 @@ scrollTo id =
     let
         f { viewport } { element } =
             { from = { x = viewport.x, y = viewport.y }
-            , to = { x = element.x, y = element.y }
+            , to = { x = viewport.x, y = element.y }
             }
     in
     scrollToCustom f id
 
 
-{-| Scroll to element with given `String` id on the current page.
+{-| Scroll to the top of the page.
+
+_note: this will only scroll the viewport y-axis to 0, the x-axis position
+will remain the same._
+
 -}
 scrollToTop : Cmd Msg
 scrollToTop =
@@ -199,6 +207,8 @@ scrollToTop =
 
 {-| Scroll to element with given `String` id on the current page
 with your own calculations on where to start and where to end.
+
+Both `Viewport` and `Element` can be found in [elm/browser](http://localhost:8009/packages/elm/browser/1.0.2/Browser-Dom)
 
 For example you could define scroll to with offset like:
 
@@ -218,14 +228,14 @@ For example you could define scroll to with offset like:
         in
         scrollToCustom f id
 
-Or set the x-axis to 0 while scrolling to the element y position.
+Or scroll the viewport x-axis to the element x position as well.
 
     scrollToAlt : String -> Cmd Msg
     scrollToAlt id =
         let
             f { viewport } { element } =
                 { from = { x = viewport.x, y = viewport.y }
-                , to = { x = 0, y = element.y }
+                , to = { x = element.x, y = element.y }
                 }
         in
         scrollToCustom f id
@@ -246,8 +256,7 @@ scrollToCustom f id =
         Task.map2 f Browser.Dom.getViewport (Browser.Dom.getElement id)
 
 
-{-| Scroll to element with given `String` id on the current page
-with your own calculations on where to start and where to end.
+{-| Scroll wherever you like but without an element.
 
 For example `scrollToTop` is defined like:
 

@@ -74,8 +74,10 @@ type Msg
     = Cancel
     | ScrollToMsg ScrollTo.Msg
     | ScrollToId String
+    | ScrollToIdAlt String
     | ScrollToIdWithOffset String
     | ScrollToTop
+    | ResetScroll
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -103,6 +105,21 @@ update msg model =
                 ScrollTo.scrollTo id
             )
 
+        ScrollToIdAlt id ->
+            let
+                f { viewport } { element } =
+                    { from = { x = viewport.x, y = viewport.y }
+                    , to =
+                        { x = element.x - viewport.width / 2
+                        , y = element.y - viewport.height / 2
+                        }
+                    }
+            in
+            ( model
+            , Cmd.map ScrollToMsg <|
+                ScrollTo.scrollToCustom f id
+            )
+
         ScrollToTop ->
             ( model
             , Cmd.map ScrollToMsg <|
@@ -119,6 +136,18 @@ update msg model =
             ( model
             , Cmd.map ScrollToMsg <|
                 ScrollTo.scrollToCustom f id
+            )
+
+        ResetScroll ->
+            let
+                f { viewport } =
+                    { from = { x = viewport.x, y = viewport.y }
+                    , to = { x = 0, y = 0 }
+                    }
+            in
+            ( model
+            , Cmd.map ScrollToMsg <|
+                ScrollTo.scrollToCustomNoElement f
             )
 
 
@@ -152,11 +181,11 @@ viewButtons =
                 [ text "Scroll to next button with offset" ]
             , button
                 [ id "five"
-                , onClick (ScrollToId "two")
+                , onClick ResetScroll
                 , style "margin" "2500px auto"
                 , style "display" "block"
                 ]
-                [ text "Scroll to left" ]
+                [ text "Reset" ]
             ]
         , div [ style "margin" "2500px 0" ]
             [ button
@@ -168,7 +197,7 @@ viewButtons =
                 [ text "Back to top" ]
             , button
                 [ id "four"
-                , onClick (ScrollToId "five")
+                , onClick (ScrollToIdAlt "five")
                 , style "margin" "0 auto"
                 , style "display" "block"
                 ]

@@ -1,6 +1,6 @@
 # elm-scroll-to
 
-Smoothly scroll to an element with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
+Smoothly scroll to an element or position with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
 
 ## Add to your `Model`
 
@@ -46,12 +46,9 @@ update msg model =
             )
 
         ScrollToId id ->
-            let
-                ( scrollToModel, scrollToCmds ) =
-                    ScrollTo.scrollTo id model.scrollTo
-            in
-            ( { model | scrollTo = scrollToModel }
-            , Cmd.map ScrollToMsg scrollToCmds
+            (  model
+            , Cmd.map ScrollToMsg <|
+                  ScrollTo.scrollTo id model.scrollTo
             )
 ```
 
@@ -74,6 +71,12 @@ div []
     ]
 ```
 
+## Example
+
+A working example can be found on [github](https://github.com/rl-king/elm-scroll-to/tree/master/example)
+
+
 ## Credits
+
 Made with help of [tad-lispy/springs](https://package.elm-lang.org/packages/tad-lispy/springs/latest/)
 and ideas from [linuss/smooth-scroll](https://package.elm-lang.org/packages/linuss/smooth-scroll/latest/).
