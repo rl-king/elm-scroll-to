@@ -8,6 +8,8 @@ module ScrollTo exposing
     , subscriptions
     , scrollTo
     , cancel
+    , scrollToCustom
+    , scrollToCustomNoElement
     )
 
 {-| Smoothly scroll to an element with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
@@ -33,6 +35,12 @@ module ScrollTo exposing
 
 @docs scrollTo
 @docs cancel
+
+
+# Scroll to custom
+
+@docs scrollToCustom
+@docs scrollToCustomNoElement
 
 -}
 
@@ -94,17 +102,17 @@ subscriptions (State spring) =
 type Msg
     = NoOp
     | Tick Float
-    | GotViewport (Result Browser.Dom.Error ( Browser.Dom.Viewport, Browser.Dom.Element ))
+    | SetTarget (Result Browser.Dom.Error { from : Float, to : Float })
 
 
 {-| Update the `State` with messages sent by `subscriptions` or `Browser.Dom`
 viewport information requests.
 -}
 update : Msg -> State -> ( State, Cmd Msg )
-update msg ((State spring) as model) =
+update msg ((State spring) as state) =
     case msg of
         NoOp ->
-            ( model, Cmd.none )
+            ( state, Cmd.none )
 
         Tick delta ->
             let
@@ -125,25 +133,90 @@ update msg ((State spring) as model) =
                     Browser.Dom.setViewport 0 (Spring.value next)
                 )
 
-        GotViewport (Ok ( { viewport }, { element } )) ->
+        SetTarget (Ok { from, to }) ->
             ( State <|
-                Spring.setTarget element.y <|
-                    Spring.jumpTo viewport.y spring
+                Spring.setTarget to <|
+                    Spring.jumpTo from spring
             , Cmd.none
             )
 
-        GotViewport (Err _) ->
-            ( model, Cmd.none )
+        SetTarget (Err _) ->
+            ( state, Cmd.none )
 
 
 {-| Scroll to element with given `String` id on the current page.
 -}
-scrollTo : String -> State -> ( State, Cmd Msg )
-scrollTo id model =
-    ( model
-    , Task.attempt GotViewport <|
-        Task.map2 Tuple.pair Browser.Dom.getViewport (Browser.Dom.getElement id)
-    )
+scrollTo : String -> Cmd Msg
+scrollTo id =
+    let
+        f { viewport } { element } =
+            { from = viewport.y
+            , to = max 0 element.y
+            }
+    in
+    scrollToCustom f id
+
+
+{-| Scroll to element with given `String` id on the current page.
+-}
+scrollToTop : Cmd Msg
+scrollToTop =
+    let
+        f { viewport } =
+            { from = viewport.y
+            , to = 0
+            }
+    in
+    scrollToCustomNoElement f
+
+
+{-| Scroll to element with given `String` id on the current page
+with your own calculations on where to start and where to end.
+
+For example you could define scroll to with offset like:
+
+    scrollToWithOffset : Float -> String -> Cmd Msg
+    scrollToWithOffset offset id =
+        let
+            f { viewport } { element } =
+                { from = viewport.y -- the current position
+                , to = max 0 (element.y - offset) -- the element position
+                }
+        in
+        scrollToCustom f id
+
+-}
+scrollToCustom :
+    (Browser.Dom.Viewport -> Browser.Dom.Element -> { from : Float, to : Float })
+    -> String
+    -> Cmd Msg
+scrollToCustom f id =
+    Task.attempt SetTarget <|
+        Task.map2 f Browser.Dom.getViewport (Browser.Dom.getElement id)
+
+
+{-| Scroll to element with given `String` id on the current page
+with your own calculations on where to start and where to end.
+
+For example `scrollToTop` is defined like:
+
+    scrollToTop : Cmd Msg
+    scrollToTop =
+        let
+            f { viewport } =
+                { from = viewport.y -- the current position
+                , to = 0 -- the top of the browser
+                }
+        in
+        scrollToCustomNoElement f
+
+-}
+scrollToCustomNoElement :
+    (Browser.Dom.Viewport -> { from : Float, to : Float })
+    -> Cmd Msg
+scrollToCustomNoElement f =
+    Task.attempt SetTarget <|
+        Task.map f Browser.Dom.getViewport
 
 
 {-| Interrupt the current animation.

@@ -96,12 +96,9 @@ update msg model =
             )
 
         ScrollToId id ->
-            let
-                ( scrollToModel, scrollToCmds ) =
-                    ScrollTo.scrollTo id model.scrollTo
-            in
-            ( { model | scrollTo = scrollToModel }
-            , Cmd.map ScrollToMsg scrollToCmds
+            ( model
+            , Cmd.map ScrollToMsg <|
+                ScrollTo.scrollTo id
             )
 
 
