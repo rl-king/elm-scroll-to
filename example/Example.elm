@@ -74,6 +74,8 @@ type Msg
     = Cancel
     | ScrollToMsg ScrollTo.Msg
     | ScrollToId String
+    | ScrollToIdWithOffset String
+    | ScrollToTop
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -101,6 +103,24 @@ update msg model =
                 ScrollTo.scrollTo id
             )
 
+        ScrollToTop ->
+            ( model
+            , Cmd.map ScrollToMsg <|
+                ScrollTo.scrollToTop
+            )
+
+        ScrollToIdWithOffset id ->
+            let
+                f { viewport } { element } =
+                    { from = viewport.y
+                    , to = Basics.max 0 (element.y - 100)
+                    }
+            in
+            ( model
+            , Cmd.map ScrollToMsg <|
+                ScrollTo.scrollToCustom f id
+            )
+
 
 
 -- VIEW
@@ -108,7 +128,7 @@ update msg model =
 
 view : Model -> Document Msg
 view model =
-    { title = "Foo"
+    { title = "elm-scroll-to"
     , body = [ viewButtons ]
     }
 
@@ -117,16 +137,23 @@ viewButtons : Html Msg
 viewButtons =
     div []
         [ button
-            [ id "one"
-            , onClick (ScrollToId "two")
+            [ onClick (ScrollToId "two")
+            , style "margin" "20px auto"
             , style "display" "block"
             ]
-            [ text "Go 👇" ]
+            [ text "Scroll to next button" ]
         , button
             [ id "two"
-            , onClick (ScrollToId "one")
-            , style "margin" "2500px 0"
+            , onClick (ScrollToIdWithOffset "three")
+            , style "margin" "2500px auto"
             , style "display" "block"
             ]
-            [ text "Go 👆" ]
+            [ text "Scroll to next button with offset" ]
+        , button
+            [ id "three"
+            , onClick ScrollToTop
+            , style "margin" "2500px auto"
+            , style "display" "block"
+            ]
+            [ text "Back to top" ]
         ]

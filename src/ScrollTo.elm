@@ -7,6 +7,7 @@ module ScrollTo exposing
     , update
     , subscriptions
     , scrollTo
+    , scrollToTop
     , cancel
     , scrollToCustom
     , scrollToCustomNoElement
@@ -34,6 +35,7 @@ module ScrollTo exposing
 # Scroll to element
 
 @docs scrollTo
+@docs scrollToTop
 @docs cancel
 
 
