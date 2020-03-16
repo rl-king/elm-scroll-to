@@ -32,7 +32,7 @@ module ScrollTo exposing
 @docs subscriptions
 
 
-# Scroll to element
+# Scroll to
 
 @docs scrollTo
 @docs scrollToTop
@@ -55,7 +55,13 @@ import Task exposing (Task)
 {-| A type containing all information to get us to the element during an animation.
 -}
 type State
-    = State Spring
+    = State Springs
+
+
+type alias Springs =
+    { x : Spring
+    , y : Spring
+    }
 
 
 {-| Settings that control how we animate to the element.
@@ -83,16 +89,16 @@ init =
 {-| Same as `init` but bring your own `Settings`.
 -}
 initWithSettings : Settings -> State
-initWithSettings =
-    State << Spring.create
+initWithSettings settings =
+    State (Springs (Spring.create settings) (Spring.create settings))
 
 
 {-| Sync to the browser refresh rate and make sure
 our animation runs as smooth as possible.
 -}
 subscriptions : State -> Sub Msg
-subscriptions (State spring) =
-    if Spring.atRest spring then
+subscriptions (State springs) =
+    if Spring.atRest springs.x && Spring.atRest springs.y then
         Sub.none
 
     else
@@ -104,14 +110,19 @@ subscriptions (State spring) =
 type Msg
     = NoOp
     | Tick Float
-    | SetTarget (Result Browser.Dom.Error { from : Float, to : Float })
+    | SetTarget
+        (Result Browser.Dom.Error
+            { from : { x : Float, y : Float }
+            , to : { x : Float, y : Float }
+            }
+        )
 
 
 {-| Update the `State` with messages sent by `subscriptions` or `Browser.Dom`
 viewport information requests.
 -}
 update : Msg -> State -> ( State, Cmd Msg )
-update msg ((State spring) as state) =
+update msg ((State springs) as state) =
     case msg of
         NoOp ->
             ( state, Cmd.none )
@@ -119,26 +130,35 @@ update msg ((State spring) as state) =
         Tick delta ->
             let
                 next =
-                    Spring.animate delta spring
+                    Springs
+                        (Spring.animate delta springs.x)
+                        (Spring.animate delta springs.y)
 
                 check current next_ target =
                     round ((current - target) + (next_ - target)) == 0
             in
-            if check (Spring.value spring) (Spring.value next) (Spring.target next) then
-                ( State (Spring.jumpTo (Spring.target spring) spring)
+            if
+                check (Spring.value springs.x) (Spring.value next.x) (Spring.target next.x)
+                    && check (Spring.value springs.y) (Spring.value next.y) (Spring.target next.y)
+            then
+                ( State <|
+                    Springs
+                        (Spring.jumpTo (Spring.target springs.x) springs.x)
+                        (Spring.jumpTo (Spring.target springs.y) springs.y)
                 , Cmd.none
                 )
 
             else
                 ( State next
                 , Task.perform (\_ -> NoOp) <|
-                    Browser.Dom.setViewport 0 (Spring.value next)
+                    Browser.Dom.setViewport (Spring.value next.x) (Spring.value next.y)
                 )
 
         SetTarget (Ok { from, to }) ->
             ( State <|
-                Spring.setTarget to <|
-                    Spring.jumpTo from spring
+                Springs
+                    (Spring.setTarget to.x (Spring.jumpTo from.x springs.x))
+                    (Spring.setTarget to.y (Spring.jumpTo from.y springs.y))
             , Cmd.none
             )
 
@@ -147,13 +167,18 @@ update msg ((State spring) as state) =
 
 
 {-| Scroll to element with given `String` id on the current page.
+
+_note: this will also scroll the viewport x-axis to the element x position.
+You'll only notice this if your content overflows the browser width. Use
+`scrollToCustom` if you want more control over this behavior._
+
 -}
 scrollTo : String -> Cmd Msg
 scrollTo id =
     let
         f { viewport } { element } =
-            { from = viewport.y
-            , to = max 0 element.y
+            { from = { x = viewport.x, y = viewport.y }
+            , to = { x = element.x, y = element.y }
             }
     in
     scrollToCustom f id
@@ -165,8 +190,8 @@ scrollToTop : Cmd Msg
 scrollToTop =
     let
         f { viewport } =
-            { from = viewport.y
-            , to = 0
+            { from = { x = viewport.x, y = viewport.y }
+            , to = { x = viewport.x, y = 0 }
             }
     in
     scrollToCustomNoElement f
@@ -181,15 +206,39 @@ For example you could define scroll to with offset like:
     scrollToWithOffset offset id =
         let
             f { viewport } { element } =
-                { from = viewport.y -- the current position
-                , to = max 0 (element.y - offset) -- the element position
+                { from =
+                    { x = viewport.x
+                    , y = viewport.y
+                    }
+                , to =
+                    { x = viewport.x
+                    , y = Basics.max 0 (element.y - 100)
+                    }
+                }
+        in
+        scrollToCustom f id
+
+Or set the x-axis to 0 while scrolling to the element y position.
+
+    scrollToAlt : String -> Cmd Msg
+    scrollToAlt id =
+        let
+            f { viewport } { element } =
+                { from = { x = viewport.x, y = viewport.y }
+                , to = { x = 0, y = element.y }
                 }
         in
         scrollToCustom f id
 
 -}
 scrollToCustom :
-    (Browser.Dom.Viewport -> Browser.Dom.Element -> { from : Float, to : Float })
+    (Browser.Dom.Viewport
+     -> Browser.Dom.Element
+     ->
+        { from : { x : Float, y : Float }
+        , to : { x : Float, y : Float }
+        }
+    )
     -> String
     -> Cmd Msg
 scrollToCustom f id =
@@ -206,15 +255,20 @@ For example `scrollToTop` is defined like:
     scrollToTop =
         let
             f { viewport } =
-                { from = viewport.y -- the current position
-                , to = 0 -- the top of the browser
+                { from = { x = viewport.x, y = viewport.y }
+                , to = { x = viewport.x, y = 0 }
                 }
         in
         scrollToCustomNoElement f
 
 -}
 scrollToCustomNoElement :
-    (Browser.Dom.Viewport -> { from : Float, to : Float })
+    (Browser.Dom.Viewport
+     ->
+        { from : { x : Float, y : Float }
+        , to : { x : Float, y : Float }
+        }
+    )
     -> Cmd Msg
 scrollToCustomNoElement f =
     Task.attempt SetTarget <|
@@ -228,5 +282,8 @@ the movement of the page.
 
 -}
 cancel : State -> State
-cancel (State spring) =
-    State (Spring.jumpTo (Spring.target spring) spring)
+cancel (State springs) =
+    State <|
+        Springs
+            (Spring.jumpTo (Spring.target springs.x) springs.x)
+            (Spring.jumpTo (Spring.target springs.y) springs.y)

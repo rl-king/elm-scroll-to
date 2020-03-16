@@ -112,8 +112,8 @@ update msg model =
         ScrollToIdWithOffset id ->
             let
                 f { viewport } { element } =
-                    { from = viewport.y
-                    , to = Basics.max 0 (element.y - 100)
+                    { from = { x = viewport.x, y = viewport.y }
+                    , to = { x = viewport.x, y = Basics.max 0 (element.y - 100) }
                     }
             in
             ( model
@@ -142,18 +142,36 @@ viewButtons =
             , style "display" "block"
             ]
             [ text "Scroll to next button" ]
-        , button
-            [ id "two"
-            , onClick (ScrollToIdWithOffset "three")
-            , style "margin" "2500px auto"
-            , style "display" "block"
+        , div [ style "display" "flex", style "width" "200vw" ]
+            [ button
+                [ id "two"
+                , onClick (ScrollToIdWithOffset "three")
+                , style "margin" "2500px auto"
+                , style "display" "block"
+                ]
+                [ text "Scroll to next button with offset" ]
+            , button
+                [ id "five"
+                , onClick (ScrollToId "two")
+                , style "margin" "2500px auto"
+                , style "display" "block"
+                ]
+                [ text "Scroll to left" ]
             ]
-            [ text "Scroll to next button with offset" ]
-        , button
-            [ id "three"
-            , onClick ScrollToTop
-            , style "margin" "2500px auto"
-            , style "display" "block"
+        , div [ style "margin" "2500px 0" ]
+            [ button
+                [ id "three"
+                , onClick ScrollToTop
+                , style "margin" "0 auto"
+                , style "display" "block"
+                ]
+                [ text "Back to top" ]
+            , button
+                [ id "four"
+                , onClick (ScrollToId "five")
+                , style "margin" "0 auto"
+                , style "display" "block"
+                ]
+                [ text "Scroll to right" ]
             ]
-            [ text "Back to top" ]
         ]
