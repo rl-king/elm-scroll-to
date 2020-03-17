@@ -9,6 +9,7 @@ module ScrollTo exposing
     , scrollTo
     , scrollToTop
     , cancel
+    , isScrolling
     , scrollToCustom
     , scrollToCustomNoElement
     )
@@ -37,6 +38,7 @@ module ScrollTo exposing
 @docs scrollTo
 @docs scrollToTop
 @docs cancel
+@docs isScrolling
 
 
 # Scroll to custom
@@ -102,12 +104,12 @@ initWithSettings settings =
 our animation runs as smooth as possible.
 -}
 subscriptions : State -> Sub Msg
-subscriptions (State springs) =
-    if Spring.atRest springs.x && Spring.atRest springs.y then
-        Sub.none
+subscriptions state =
+    if isScrolling state then
+        Browser.Events.onAnimationFrameDelta Tick
 
     else
-        Browser.Events.onAnimationFrameDelta Tick
+        Sub.none
 
 
 {-| A message type for the `State` to update.
@@ -180,9 +182,12 @@ Use `scrollToCustom` if you want more control over this behavior._
 scrollTo : String -> Cmd Msg
 scrollTo id =
     let
-        f { viewport } { element } =
+        f { viewport, scene } { element } =
             { from = { x = viewport.x, y = viewport.y }
-            , to = { x = viewport.x, y = element.y }
+            , to =
+                { x = viewport.x
+                , y = min element.y (scene.height - viewport.height)
+                }
             }
     in
     scrollToCustom f id
@@ -296,3 +301,10 @@ cancel (State springs) =
         Springs
             (Spring.jumpTo (Spring.target springs.x) springs.x)
             (Spring.jumpTo (Spring.target springs.y) springs.y)
+
+
+{-| Check if the scrolling animation is running.
+-}
+isScrolling : State -> Bool
+isScrolling (State springs) =
+    not (Spring.atRest springs.x && Spring.atRest springs.y)
