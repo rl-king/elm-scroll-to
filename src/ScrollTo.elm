@@ -14,7 +14,8 @@ module ScrollTo exposing
     , scrollToCustomNoElement
     )
 
-{-| Smoothly scroll to an element on the page with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
+{-| Smoothly scroll to an element or position
+on the page with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
 
 
 # Init
