@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0
+* Add `(Msg -> msg)` argument to remove the need for `Cmd.map`.
+* Add `continueMotion` option to maintain velocity if animation is interupted.
+
 ## 1.1.0
 * Add `isScrolling` to check if page is animating.
 * Limit `isScroll` to `scene.height - viewport.height` to prevent scrolling past what is possible, resulting in smoother end of animation.
