@@ -122,6 +122,7 @@ type Msg
         (Result Browser.Dom.Error
             { from : { x : Float, y : Float }
             , to : { x : Float, y : Float }
+            , continueMotion : Bool
             }
         )
 
@@ -162,11 +163,19 @@ update msg ((State springs) as state) =
                     Browser.Dom.setViewport (Spring.value next.x) (Spring.value next.y)
                 )
 
-        SetTarget (Ok { from, to }) ->
+        SetTarget (Ok { from, to, continueMotion }) ->
+            let
+                setCurrent =
+                    if continueMotion then
+                        Spring.setTarget
+
+                    else
+                        Spring.jumpTo
+            in
             ( State <|
                 Springs
-                    (Spring.setTarget to.x (Spring.jumpTo from.x springs.x))
-                    (Spring.setTarget to.y (Spring.jumpTo from.y springs.y))
+                    (Spring.setTarget to.x (setCurrent from.x springs.x))
+                    (Spring.setTarget to.y (setCurrent from.y springs.y))
             , Cmd.none
             )
 
@@ -180,8 +189,27 @@ _note: this will only scroll the viewport y-axis to the element y position.
 Use `scrollToCustom` if you want more control over this behavior._
 
 -}
-scrollTo : String -> Cmd Msg
-scrollTo id =
+scrollTo : (Msg -> msg) -> String -> Cmd msg
+scrollTo lift id =
+    scrollTo_ lift id False
+
+
+{-| Scroll to element with given `String` id on the current page.
+
+If called during a running animation this function will maintain
+the current velocity and smoothly transition to the requested element.
+
+_note: this will only scroll the viewport y-axis to the element y position.
+Use `scrollToCustom` if you want more control over this behavior._
+
+-}
+scrollToContinueMotion : (Msg -> msg) -> String -> Cmd msg
+scrollToContinueMotion lift id =
+    scrollTo_ lift id True
+
+
+scrollTo_ : (Msg -> msg) -> String -> Bool -> Cmd msg
+scrollTo_ lift id continueMotion =
     let
         f { viewport, scene } { element } =
             { from = { x = viewport.x, y = viewport.y }
@@ -189,9 +217,10 @@ scrollTo id =
                 { x = viewport.x
                 , y = min element.y (scene.height - viewport.height)
                 }
+            , continueMotion = continueMotion
             }
     in
-    scrollToCustom f id
+    scrollToCustom lift f id
 
 
 {-| Scroll to the top of the page.
@@ -200,15 +229,16 @@ _note: this will only scroll the viewport y-axis to 0, the x-axis position
 will remain the same._
 
 -}
-scrollToTop : Cmd Msg
-scrollToTop =
+scrollToTop : (Msg -> msg) -> Cmd msg
+scrollToTop lift =
     let
         f { viewport } =
             { from = { x = viewport.x, y = viewport.y }
             , to = { x = viewport.x, y = 0 }
+            , continueMotion = False
             }
     in
-    scrollToCustomNoElement f
+    scrollToCustomNoElement lift f
 
 
 {-| Scroll to element with given `String` id on the current page
@@ -230,6 +260,7 @@ For example you could define scroll to with offset like:
                     { x = viewport.x
                     , y = Basics.max 0 (element.y - 100)
                     }
+                , continueMotion = False
                 }
         in
         scrollToCustom f id
@@ -242,23 +273,27 @@ Or scroll the viewport x-axis to the element x position as well.
             f { viewport } { element } =
                 { from = { x = viewport.x, y = viewport.y }
                 , to = { x = element.x, y = element.y }
+                , continueMotion = False
                 }
         in
         scrollToCustom f id
 
 -}
 scrollToCustom :
-    (Browser.Dom.Viewport
-     -> Browser.Dom.Element
-     ->
-        { from : { x : Float, y : Float }
-        , to : { x : Float, y : Float }
-        }
-    )
+    (Msg -> msg)
+    ->
+        (Browser.Dom.Viewport
+         -> Browser.Dom.Element
+         ->
+            { from : { x : Float, y : Float }
+            , to : { x : Float, y : Float }
+            , continueMotion : Bool
+            }
+        )
     -> String
-    -> Cmd Msg
-scrollToCustom f id =
-    Task.attempt SetTarget <|
+    -> Cmd msg
+scrollToCustom lift f id =
+    Task.attempt (lift << SetTarget) <|
         Task.map2 f Browser.Dom.getViewport (Browser.Dom.getElement id)
 
 
@@ -272,21 +307,25 @@ For example `scrollToTop` is defined like:
             f { viewport } =
                 { from = { x = viewport.x, y = viewport.y }
                 , to = { x = viewport.x, y = 0 }
+                , continueMotion = False
                 }
         in
         scrollToCustomNoElement f
 
 -}
 scrollToCustomNoElement :
-    (Browser.Dom.Viewport
-     ->
-        { from : { x : Float, y : Float }
-        , to : { x : Float, y : Float }
-        }
-    )
-    -> Cmd Msg
-scrollToCustomNoElement f =
-    Task.attempt SetTarget <|
+    (Msg -> msg)
+    ->
+        (Browser.Dom.Viewport
+         ->
+            { from : { x : Float, y : Float }
+            , to : { x : Float, y : Float }
+            , continueMotion : Bool
+            }
+        )
+    -> Cmd msg
+scrollToCustomNoElement lift f =
+    Task.attempt (lift << SetTarget) <|
         Task.map f Browser.Dom.getViewport
 
 

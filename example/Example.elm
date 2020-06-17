@@ -101,8 +101,7 @@ update msg model =
 
         ScrollToId id ->
             ( model
-            , Cmd.map ScrollToMsg <|
-                ScrollTo.scrollTo id
+            , ScrollTo.scrollTo ScrollToMsg id
             )
 
         ScrollToIdAlt id ->
@@ -113,17 +112,16 @@ update msg model =
                         { x = element.x - viewport.width / 2
                         , y = element.y - viewport.height / 2
                         }
+                    , continueMotion = False
                     }
             in
             ( model
-            , Cmd.map ScrollToMsg <|
-                ScrollTo.scrollToCustom f id
+            , ScrollTo.scrollToCustom ScrollToMsg f id
             )
 
         ScrollToTop ->
             ( model
-            , Cmd.map ScrollToMsg <|
-                ScrollTo.scrollToTop
+            , ScrollTo.scrollToTop ScrollToMsg
             )
 
         ScrollToIdWithOffset id ->
@@ -131,11 +129,11 @@ update msg model =
                 f { viewport } { element } =
                     { from = { x = viewport.x, y = viewport.y }
                     , to = { x = viewport.x, y = Basics.max 0 (element.y - 100) }
+                    , continueMotion = False
                     }
             in
             ( model
-            , Cmd.map ScrollToMsg <|
-                ScrollTo.scrollToCustom f id
+            , ScrollTo.scrollToCustom ScrollToMsg f id
             )
 
         ResetScroll ->
@@ -143,11 +141,11 @@ update msg model =
                 f { viewport } =
                     { from = { x = viewport.x, y = viewport.y }
                     , to = { x = 0, y = 0 }
+                    , continueMotion = False
                     }
             in
             ( model
-            , Cmd.map ScrollToMsg <|
-                ScrollTo.scrollToCustomNoElement f
+            , ScrollTo.scrollToCustomNoElement ScrollToMsg f
             )
 
 
