@@ -7,6 +7,7 @@ module ScrollTo exposing
     , update
     , subscriptions
     , scrollTo
+    , scrollToContinueMotion
     , scrollToTop
     , cancel
     , isScrolling
@@ -37,6 +38,7 @@ on the page with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation
 # Scroll to
 
 @docs scrollTo
+@docs scrollToContinueMotion
 @docs scrollToTop
 @docs cancel
 @docs isScrolling
@@ -104,10 +106,11 @@ initWithSettings settings =
 {-| Sync to the browser refresh rate and make sure
 our animation runs as smooth as possible.
 -}
-subscriptions : State -> Sub Msg
-subscriptions state =
+subscriptions : (Msg -> msg) -> State -> Sub msg
+subscriptions lift state =
     if isScrolling state then
-        Browser.Events.onAnimationFrameDelta Tick
+        Sub.map lift <|
+            Browser.Events.onAnimationFrameDelta Tick
 
     else
         Sub.none
@@ -130,8 +133,8 @@ type Msg
 {-| Update the `State` with messages sent by `subscriptions` or `Browser.Dom`
 viewport information requests.
 -}
-update : Msg -> State -> ( State, Cmd Msg )
-update msg ((State springs) as state) =
+update : (Msg -> msg) -> Msg -> State -> ( State, Cmd msg )
+update lift msg ((State springs) as state) =
     case msg of
         NoOp ->
             ( state, Cmd.none )
@@ -159,7 +162,7 @@ update msg ((State springs) as state) =
 
             else
                 ( State next
-                , Task.perform (\_ -> NoOp) <|
+                , Task.perform (\_ -> lift NoOp) <|
                     Browser.Dom.setViewport (Spring.value next.x) (Spring.value next.y)
                 )
 

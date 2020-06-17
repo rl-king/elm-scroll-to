@@ -2,6 +2,9 @@
 
 Smoothly scroll to an element or position with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation.
 
+[example live](https://rl-king.github.io/elm-scroll-to-example/) |
+[example code](https://github.com/rl-king/elm-scroll-to/tree/master/example).
+
 ## Add to your `Model`
 
 ```elm
@@ -9,8 +12,8 @@ type alias Model =
     { scrollTo : ScrollTo.State }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
+init : ( Model, Cmd Msg )
+init =
     ( { scrollTo = ScrollTo.init }
     , Cmd.none
     )
@@ -22,8 +25,7 @@ init _ =
 ```elm
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map ScrollToMsg <|
-        ScrollTo.subscriptions model.scrollTo
+    ScrollTo.subscriptions ScrollToMsg model.scrollTo
 
 
 type Msg
@@ -37,18 +39,15 @@ update msg model =
         ScrollToMsg scrollToMsg ->
             let
                 ( scrollToModel, scrollToCmds ) =
-                    ScrollTo.update
-                        scrollToMsg
-                        model.scrollTo
+                    ScrollTo.update ScrollToMsg scrollToMsg model.scrollTo
             in
             ( { model | scrollTo = scrollToModel }
-            , Cmd.map ScrollToMsg scrollToCmds
+            , scrollToCmds
             )
 
         ScrollToId id ->
             (  model
-            , Cmd.map ScrollToMsg <|
-                  ScrollTo.scrollTo id model.scrollTo
+            , ScrollTo.scrollTo ScrollToMsg id model.scrollTo
             )
 ```
 
@@ -70,11 +69,6 @@ div []
         [ text "Go 👆" ]
     ]
 ```
-
-## Example
-
-A working example can be found on [github](https://github.com/rl-king/elm-scroll-to/tree/master/example)
-
 
 ## Credits
 

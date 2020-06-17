@@ -32,7 +32,7 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map ScrollToMsg (ScrollTo.subscriptions model.scrollTo)
+        [ ScrollTo.subscriptions ScrollToMsg model.scrollTo
         , Browser.Events.onKeyUp (onKeyUp "Escape" Cancel)
         ]
 
@@ -91,12 +91,10 @@ update msg model =
         ScrollToMsg scrollToMsg ->
             let
                 ( scrollToModel, scrollToCmds ) =
-                    ScrollTo.update
-                        scrollToMsg
-                        model.scrollTo
+                    ScrollTo.update ScrollToMsg scrollToMsg model.scrollTo
             in
             ( { model | scrollTo = scrollToModel }
-            , Cmd.map ScrollToMsg scrollToCmds
+            , scrollToCmds
             )
 
         ScrollToId id ->
