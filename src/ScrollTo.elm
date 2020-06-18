@@ -7,7 +7,6 @@ module ScrollTo exposing
     , update
     , subscriptions
     , scrollTo
-    , scrollToContinueMotion
     , scrollToTop
     , cancel
     , isScrolling
@@ -38,7 +37,6 @@ on the page with a [spring](https://en.wikipedia.org/wiki/Hooke's_law) animation
 # Scroll to
 
 @docs scrollTo
-@docs scrollToContinueMotion
 @docs scrollToTop
 @docs cancel
 @docs isScrolling
@@ -125,7 +123,6 @@ type Msg
         (Result Browser.Dom.Error
             { from : { x : Float, y : Float }
             , to : { x : Float, y : Float }
-            , continueMotion : Bool
             }
         )
 
@@ -166,10 +163,10 @@ update lift msg ((State springs) as state) =
                     Browser.Dom.setViewport (Spring.value next.x) (Spring.value next.y)
                 )
 
-        SetTarget (Ok { from, to, continueMotion }) ->
+        SetTarget (Ok { from, to }) ->
             let
                 setCurrent =
-                    if continueMotion then
+                    if isScrolling state then
                         Spring.setTarget
 
                     else
@@ -194,25 +191,6 @@ Use `scrollToCustom` if you want more control over this behavior._
 -}
 scrollTo : (Msg -> msg) -> String -> Cmd msg
 scrollTo lift id =
-    scrollTo_ lift id False
-
-
-{-| Scroll to element with given `String` id on the current page.
-
-If called during a running animation this function will maintain
-the current velocity and smoothly transition to the requested element.
-
-_note: this will only scroll the viewport y-axis to the element y position.
-Use `scrollToCustom` if you want more control over this behavior._
-
--}
-scrollToContinueMotion : (Msg -> msg) -> String -> Cmd msg
-scrollToContinueMotion lift id =
-    scrollTo_ lift id True
-
-
-scrollTo_ : (Msg -> msg) -> String -> Bool -> Cmd msg
-scrollTo_ lift id continueMotion =
     let
         f { viewport, scene } { element } =
             { from = { x = viewport.x, y = viewport.y }
@@ -220,7 +198,6 @@ scrollTo_ lift id continueMotion =
                 { x = viewport.x
                 , y = min element.y (scene.height - viewport.height)
                 }
-            , continueMotion = continueMotion
             }
     in
     scrollToCustom lift f id
@@ -238,7 +215,6 @@ scrollToTop lift =
         f { viewport } =
             { from = { x = viewport.x, y = viewport.y }
             , to = { x = viewport.x, y = 0 }
-            , continueMotion = False
             }
     in
     scrollToCustomNoElement lift f
@@ -263,7 +239,6 @@ For example you could define scroll to with offset like:
                     { x = viewport.x
                     , y = Basics.max 0 (element.y - 100)
                     }
-                , continueMotion = False
                 }
         in
         scrollToCustom f id
@@ -276,7 +251,6 @@ Or scroll the viewport x-axis to the element x position as well.
             f { viewport } { element } =
                 { from = { x = viewport.x, y = viewport.y }
                 , to = { x = element.x, y = element.y }
-                , continueMotion = False
                 }
         in
         scrollToCustom f id
@@ -290,7 +264,6 @@ scrollToCustom :
          ->
             { from : { x : Float, y : Float }
             , to : { x : Float, y : Float }
-            , continueMotion : Bool
             }
         )
     -> String
@@ -323,7 +296,6 @@ scrollToCustomNoElement :
          ->
             { from : { x : Float, y : Float }
             , to : { x : Float, y : Float }
-            , continueMotion : Bool
             }
         )
     -> Cmd msg
