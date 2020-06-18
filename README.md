@@ -74,11 +74,6 @@ div []
     ]
 ```
 
-## Example
-
-A working example can be found on [github](https://github.com/rl-king/elm-scroll-to/tree/master/example)
-
-
 ## Credits
 
 Made with help of [tad-lispy/springs](https://package.elm-lang.org/packages/tad-lispy/springs/latest/)
