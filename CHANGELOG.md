@@ -2,7 +2,9 @@
 
 ## 2.0.0
 * Add `(Msg -> msg)` argument to remove the need for `Cmd.map`.
-* Add `continueMotion` option to maintain velocity if animation is interupted.
+
+## 1.1.1
+* Maintain velocity when setting target while animation is running.
 
 ## 1.1.0
 * Add `isScrolling` to check if page is animating.
