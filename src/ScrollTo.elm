@@ -163,10 +163,18 @@ update msg ((State springs) as state) =
                 )
 
         SetTarget (Ok { from, to }) ->
+            let
+                setCurrent =
+                    if isScrolling state then
+                        Spring.setTarget
+
+                    else
+                        Spring.jumpTo
+            in
             ( State <|
                 Springs
-                    (Spring.setTarget to.x (Spring.jumpTo from.x springs.x))
-                    (Spring.setTarget to.y (Spring.jumpTo from.y springs.y))
+                    (Spring.setTarget to.x (setCurrent from.x springs.x))
+                    (Spring.setTarget to.y (setCurrent from.y springs.y))
             , Cmd.none
             )
 
