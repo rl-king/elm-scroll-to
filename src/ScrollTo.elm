@@ -104,10 +104,11 @@ initWithSettings settings =
 {-| Sync to the browser refresh rate and make sure
 our animation runs as smooth as possible.
 -}
-subscriptions : State -> Sub Msg
-subscriptions state =
+subscriptions : (Msg -> msg) -> State -> Sub msg
+subscriptions lift state =
     if isScrolling state then
-        Browser.Events.onAnimationFrameDelta Tick
+        Sub.map lift <|
+            Browser.Events.onAnimationFrameDelta Tick
 
     else
         Sub.none
@@ -129,8 +130,8 @@ type Msg
 {-| Update the `State` with messages sent by `subscriptions` or `Browser.Dom`
 viewport information requests.
 -}
-update : Msg -> State -> ( State, Cmd Msg )
-update msg ((State springs) as state) =
+update : (Msg -> msg) -> Msg -> State -> ( State, Cmd msg )
+update lift msg ((State springs) as state) =
     case msg of
         NoOp ->
             ( state, Cmd.none )
@@ -158,7 +159,7 @@ update msg ((State springs) as state) =
 
             else
                 ( State next
-                , Task.perform (\_ -> NoOp) <|
+                , Task.perform (\_ -> lift NoOp) <|
                     Browser.Dom.setViewport (Spring.value next.x) (Spring.value next.y)
                 )
 
@@ -188,8 +189,8 @@ _note: this will only scroll the viewport y-axis to the element y position.
 Use `scrollToCustom` if you want more control over this behavior._
 
 -}
-scrollTo : String -> Cmd Msg
-scrollTo id =
+scrollTo : (Msg -> msg) -> String -> Cmd msg
+scrollTo lift id =
     let
         f { viewport, scene } { element } =
             { from = { x = viewport.x, y = viewport.y }
@@ -199,7 +200,7 @@ scrollTo id =
                 }
             }
     in
-    scrollToCustom f id
+    scrollToCustom lift f id
 
 
 {-| Scroll to the top of the page.
@@ -208,15 +209,15 @@ _note: this will only scroll the viewport y-axis to 0, the x-axis position
 will remain the same._
 
 -}
-scrollToTop : Cmd Msg
-scrollToTop =
+scrollToTop : (Msg -> msg) -> Cmd msg
+scrollToTop lift =
     let
         f { viewport } =
             { from = { x = viewport.x, y = viewport.y }
             , to = { x = viewport.x, y = 0 }
             }
     in
-    scrollToCustomNoElement f
+    scrollToCustomNoElement lift f
 
 
 {-| Scroll to element with given `String` id on the current page
@@ -256,17 +257,19 @@ Or scroll the viewport x-axis to the element x position as well.
 
 -}
 scrollToCustom :
-    (Browser.Dom.Viewport
-     -> Browser.Dom.Element
-     ->
-        { from : { x : Float, y : Float }
-        , to : { x : Float, y : Float }
-        }
-    )
+    (Msg -> msg)
+    ->
+        (Browser.Dom.Viewport
+         -> Browser.Dom.Element
+         ->
+            { from : { x : Float, y : Float }
+            , to : { x : Float, y : Float }
+            }
+        )
     -> String
-    -> Cmd Msg
-scrollToCustom f id =
-    Task.attempt SetTarget <|
+    -> Cmd msg
+scrollToCustom lift f id =
+    Task.attempt (lift << SetTarget) <|
         Task.map2 f Browser.Dom.getViewport (Browser.Dom.getElement id)
 
 
@@ -280,21 +283,24 @@ For example `scrollToTop` is defined like:
             f { viewport } =
                 { from = { x = viewport.x, y = viewport.y }
                 , to = { x = viewport.x, y = 0 }
+                , continueMotion = False
                 }
         in
         scrollToCustomNoElement f
 
 -}
 scrollToCustomNoElement :
-    (Browser.Dom.Viewport
-     ->
-        { from : { x : Float, y : Float }
-        , to : { x : Float, y : Float }
-        }
-    )
-    -> Cmd Msg
-scrollToCustomNoElement f =
-    Task.attempt SetTarget <|
+    (Msg -> msg)
+    ->
+        (Browser.Dom.Viewport
+         ->
+            { from : { x : Float, y : Float }
+            , to : { x : Float, y : Float }
+            }
+        )
+    -> Cmd msg
+scrollToCustomNoElement lift f =
+    Task.attempt (lift << SetTarget) <|
         Task.map f Browser.Dom.getViewport
 
 

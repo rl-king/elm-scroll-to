@@ -25,8 +25,7 @@ init =
 ```elm
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map ScrollToMsg <|
-        ScrollTo.subscriptions model.scrollTo
+    ScrollTo.subscriptions ScrollToMsg model.scrollTo
 
 
 type Msg
@@ -40,18 +39,15 @@ update msg model =
         ScrollToMsg scrollToMsg ->
             let
                 ( scrollToModel, scrollToCmds ) =
-                    ScrollTo.update
-                        scrollToMsg
-                        model.scrollTo
+                    ScrollTo.update ScrollToMsg scrollToMsg model.scrollTo
             in
             ( { model | scrollTo = scrollToModel }
-            , Cmd.map ScrollToMsg scrollToCmds
+            , scrollToCmds
             )
 
         ScrollToId id ->
-            ( model
-            , Cmd.map ScrollToMsg <|
-                  ScrollTo.scrollTo id model.scrollTo
+            (  model
+            , ScrollTo.scrollTo ScrollToMsg id model.scrollTo
             )
 ```
 

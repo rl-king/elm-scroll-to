@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0
+* Add `(Msg -> msg)` argument to remove the need for `Cmd.map`.
+
 ## 1.1.1
 * Maintain velocity when setting target while animation is running.
 
