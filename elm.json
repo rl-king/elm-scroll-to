@@ -11,6 +11,7 @@
     "dependencies": {
         "elm/browser": "1.0.0 <= v < 2.0.0",
         "elm/core": "1.0.0 <= v < 2.0.0",
+        "elm/time": "1.0.0 <= v < 2.0.0",
         "tad-lispy/springs": "1.0.5 <= v < 2.0.0"
     },
     "test-dependencies": {}

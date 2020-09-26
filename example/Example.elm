@@ -31,10 +31,7 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ ScrollTo.subscriptions ScrollToMsg model.scrollTo
-        , Browser.Events.onKeyUp (onKeyUp "Escape" Cancel)
-        ]
+    Browser.Events.onKeyUp (onKeyUp "Escape" Cancel)
 
 
 onKeyUp : String -> msg -> Decode.Decoder msg
@@ -110,7 +107,6 @@ update msg model =
                         { x = element.x - viewport.width / 2
                         , y = element.y - viewport.height / 2
                         }
-                    , continueMotion = False
                     }
             in
             ( model
@@ -127,7 +123,6 @@ update msg model =
                 f { viewport } { element } =
                     { from = { x = viewport.x, y = viewport.y }
                     , to = { x = viewport.x, y = Basics.max 0 (element.y - 100) }
-                    , continueMotion = False
                     }
             in
             ( model
@@ -139,7 +134,6 @@ update msg model =
                 f { viewport } =
                     { from = { x = viewport.x, y = viewport.y }
                     , to = { x = 0, y = 0 }
-                    , continueMotion = False
                     }
             in
             ( model

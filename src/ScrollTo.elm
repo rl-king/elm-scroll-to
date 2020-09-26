@@ -5,7 +5,6 @@ module ScrollTo exposing
     , initWithSettings
     , Msg
     , update
-    , subscriptions
     , scrollTo
     , scrollToTop
     , cancel
@@ -53,6 +52,7 @@ import Browser.Dom
 import Browser.Events
 import Spring exposing (Spring)
 import Task exposing (Task)
+import Time
 
 
 {-| A type containing all information to get us to our destination during an animation.
@@ -101,29 +101,18 @@ initWithSettings settings =
     State (Springs (Spring.create settings) (Spring.create settings))
 
 
-{-| Sync to the browser refresh rate and make sure
-our animation runs as smooth as possible.
--}
-subscriptions : (Msg -> msg) -> State -> Sub msg
-subscriptions lift state =
-    if isScrolling state then
-        Sub.map lift <|
-            Browser.Events.onAnimationFrameDelta Tick
-
-    else
-        Sub.none
-
-
 {-| A message type for the `State` to update.
 -}
 type Msg
     = NoOp
-    | Tick Float
+    | Tick Int Time.Posix
     | SetTarget
         (Result Browser.Dom.Error
-            { from : { x : Float, y : Float }
-            , to : { x : Float, y : Float }
-            }
+            ( Time.Posix
+            , { from : { x : Float, y : Float }
+              , to : { x : Float, y : Float }
+              }
+            )
         )
 
 
@@ -132,16 +121,23 @@ viewport information requests.
 -}
 update : (Msg -> msg) -> Msg -> State -> ( State, Cmd msg )
 update lift msg ((State springs) as state) =
+    let
+        setViewport lastNow next =
+            Task.perform lift <|
+                Task.map2 (\now _ -> Tick (Time.posixToMillis now - Time.posixToMillis lastNow) now)
+                    Time.now
+                    (Browser.Dom.setViewport (Spring.value next.x) (Spring.value next.y))
+    in
     case msg of
         NoOp ->
             ( state, Cmd.none )
 
-        Tick delta ->
+        Tick delta lastNow ->
             let
                 next =
                     Springs
-                        (Spring.animate delta springs.x)
-                        (Spring.animate delta springs.y)
+                        (Spring.animate (toFloat delta) springs.x)
+                        (Spring.animate (toFloat delta) springs.y)
 
                 check current next_ target =
                     round ((current - target) + (next_ - target)) == 0
@@ -159,11 +155,10 @@ update lift msg ((State springs) as state) =
 
             else
                 ( State next
-                , Task.perform (\_ -> lift NoOp) <|
-                    Browser.Dom.setViewport (Spring.value next.x) (Spring.value next.y)
+                , setViewport lastNow next
                 )
 
-        SetTarget (Ok { from, to }) ->
+        SetTarget (Ok ( now, { from, to } )) ->
             let
                 setCurrent =
                     if isScrolling state then
@@ -171,12 +166,14 @@ update lift msg ((State springs) as state) =
 
                     else
                         Spring.jumpTo
+
+                next =
+                    Springs
+                        (Spring.setTarget to.x (setCurrent from.x springs.x))
+                        (Spring.setTarget to.y (setCurrent from.y springs.y))
             in
-            ( State <|
-                Springs
-                    (Spring.setTarget to.x (setCurrent from.x springs.x))
-                    (Spring.setTarget to.y (setCurrent from.y springs.y))
-            , Cmd.none
+            ( State next
+            , setViewport now next
             )
 
         SetTarget (Err _) ->
@@ -270,7 +267,8 @@ scrollToCustom :
     -> Cmd msg
 scrollToCustom lift f id =
     Task.attempt (lift << SetTarget) <|
-        Task.map2 f Browser.Dom.getViewport (Browser.Dom.getElement id)
+        Task.map2 Tuple.pair Time.now <|
+            Task.map2 f Browser.Dom.getViewport (Browser.Dom.getElement id)
 
 
 {-| Scroll wherever you like but without an element.
@@ -283,7 +281,6 @@ For example `scrollToTop` is defined like:
             f { viewport } =
                 { from = { x = viewport.x, y = viewport.y }
                 , to = { x = viewport.x, y = 0 }
-                , continueMotion = False
                 }
         in
         scrollToCustomNoElement f
@@ -301,7 +298,8 @@ scrollToCustomNoElement :
     -> Cmd msg
 scrollToCustomNoElement lift f =
     Task.attempt (lift << SetTarget) <|
-        Task.map f Browser.Dom.getViewport
+        Task.map2 Tuple.pair Time.now <|
+            Task.map f Browser.Dom.getViewport
 
 
 {-| Interrupt the current animation.
