@@ -51,7 +51,7 @@ update msg model =
         ScrollToId id ->
             ( model
             , Cmd.map ScrollToMsg <|
-                  ScrollTo.scrollTo id model.scrollTo
+                  ScrollTo.scrollTo id
             )
 ```
 
